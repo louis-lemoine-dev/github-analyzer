@@ -20,3 +20,12 @@ packages = [{include = "github_analyzer", from = "src"}]
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]    # E = pycodestyle errors, F = pyflakes, I = isort
+
+[tool.ruff.format]
+quote-style = "double"
