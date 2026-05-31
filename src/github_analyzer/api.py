@@ -127,11 +127,115 @@ def fetch_recent_commits(repo: str, count: int = 10) -> list[dict]:
     ]
 
 
+def fetch_open_prs(repo: str) -> list[dict]:
+    """
+    Fetches all open pull requests for a GitHub repository.
+
+    Args:
+        repo: Full repository name in the format "owner/repo"
+              e.g. "louis-lemoine-dev/github-analyzer"
+
+    Returns:
+        A list of dictionaries, one per open PR, containing
+        the number, title, author, source branch, target branch,
+        and creation date.
+    """
+    # Retrieve the GitHub token from environment variables
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        raise ValueError(
+            "GITHUB_TOKEN not found. Make sure it is set in your .env file."
+        )
+
+    # Build the API endpoint URL for pull requests
+    url = f"https://api.github.com/repos/{repo}/pulls"
+
+    # Set up authentication and format headers
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    # Query parameters: filter to only open PRs
+    params = {"state": "open"}
+
+    # Make the HTTP GET request
+    response = requests.get(url, headers=headers, params=params)
+
+    # Raise an exception if the request failed
+    response.raise_for_status()
+
+    # Parse the JSON response — a list of PR objects
+    data = response.json()
+
+    # Extract relevant fields from each PR
+    # Note the nested structure: author is at pr["user"]["login"],
+    # source branch at pr["head"]["ref"], target branch at pr["base"]["ref"]
+    return [
+        {
+            "number": pr["number"],
+            "title": pr["title"],
+            "author": pr["user"]["login"],
+            "from_branch": pr["head"]["ref"],
+            "into_branch": pr["base"]["ref"],
+            "opened_at": pr["created_at"],
+        }
+        for pr in data
+    ]
+
+
+def fetch_branches(repo: str) -> list[dict]:
+    """
+    Fetches all branches for a GitHub repository.
+
+    Args:
+        repo: Full repository name in the format "owner/repo"
+              e.g. "louis-lemoine-dev/github-analyzer"
+
+    Returns:
+        A list of dictionaries, one per branch, containing
+        the branch name and the shortened SHA of its latest commit.
+    """
+    # Retrieve the GitHub token from environment variables
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        raise ValueError(
+            "GITHUB_TOKEN not found. Make sure it is set in your .env file."
+        )
+
+    # Build the API endpoint URL for branches
+    url = f"https://api.github.com/repos/{repo}/branches"
+
+    # Set up authentication and format headers
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    # Make the HTTP GET request — no query parameters needed here
+    response = requests.get(url, headers=headers)
+
+    # Raise an exception if the request failed
+    response.raise_for_status()
+
+    # Parse the JSON response — a list of branch objects
+    data = response.json()
+
+    # Extract the branch name and shortened SHA of the latest commit
+    return [
+        {
+            "name": branch["name"],
+            "latest_commit_sha": branch["commit"]["sha"][:7],
+        }
+        for branch in data
+    ]
+
+
 # ─────────────────────────────────────────────
 # Quick manual test (remove before final version)
 # ─────────────────────────────────────────────
 
 if __name__ == "__main__":
     # Only runs when this file is executed directly, not when imported
-    result = fetch_recent_commits("louis-lemoine-dev/github-analyzer")
+    result = fetch_open_prs("louis-lemoine-dev/github-analyzer")
     print(result)
