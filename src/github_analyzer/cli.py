@@ -3,6 +3,9 @@
 # ─────────────────────────────────────────────
 
 import typer  # CLI framework: turns Python functions into terminal commands
+from rich.console import Console  # Rich's main object for printing styled output
+from rich.panel import Panel  # Rich's bordered box for single-item summaries
+from rich.table import Table  # Rich's table for displaying tabular data
 
 from github_analyzer.api import (  # Import our existing data-fetching functions
     fetch_branches,
@@ -19,6 +22,9 @@ from github_analyzer.api import (  # Import our existing data-fetching functions
 # Every command we define below gets attached to this app.
 app = typer.Typer()
 
+# Shared rich console instance used across all commands for styled output
+console = Console()
+
 # ─────────────────────────────────────────────
 # CLI Commands
 # ─────────────────────────────────────────────
@@ -34,22 +40,28 @@ def info(repo: str) -> None:
         repo: Full repository name in the format "owner/repo"
     """
     try:
-        # Call the existing API function to fetch the data
+        # Call the existing API function to fetch the data — unchanged from before
         data = fetch_repo_metadata(repo)
 
-        # Print each field in a simple, readable format
-        typer.echo(f"Name:          {data['name']}")
-        typer.echo(f"Description:   {data['description']}")
-        typer.echo(f"Language:      {data['language']}")
-        typer.echo(f"Stars:         {data['stars']}")
-        typer.echo(f"Forks:         {data['forks']}")
-        typer.echo(f"Open Issues:   {data['open_issues']}")
-        typer.echo(f"Last Updated:  {data['last_updated']}")
+        # Build a single formatted string with one field per line
+        # rich's inline style syntax [bold]...[/bold] lets us highlight specific values
+        content = (
+            f"[bold]Description:[/bold] {data['description']}\n"
+            f"[bold]Language:[/bold] {data['language']}\n"
+            f"[bold]Stars:[/bold] [yellow]{data['stars']}[/yellow]\n"
+            f"[bold]Forks:[/bold] {data['forks']}\n"
+            f"[bold]Open Issues:[/bold] [red]{data['open_issues']}[/red]\n"
+            f"[bold]Last Updated:[/bold] {data['last_updated']}"
+        )
+
+        # Wrap the content in a Panel — a bordered box with a title
+        panel = Panel(content, title=data["name"], border_style="cyan")
+
+        # Print via the rich console instead of typer.echo()
+        console.print(panel)
 
     except Exception as e:
-        # Catch any error (network issue, bad token, repo not found, etc.)
-        # and display it cleanly instead of crashing with a raw traceback
-        typer.echo(f"Error fetching repo info: {e}")
+        console.print(f"[bold red]Error fetching repo info:[/bold red] {e}")
         raise typer.Exit(code=1)
 
 
@@ -63,17 +75,30 @@ def commits(repo: str, count: int = 10) -> None:
         count: Number of recent commits to display (default: 10)
     """
     try:
-        # Call the existing API function to fetch commit data
+        # Call the existing API function to fetch commit data — unchanged from before
         data = fetch_recent_commits(repo, count)
 
-        # Print each commit on its own line
+        # Create a table with a title and one column per field
+        table = Table(title=f"Recent Commits — {repo}")
+        table.add_column("SHA", style="cyan")
+        table.add_column("Date")
+        table.add_column("Author")
+        table.add_column("Message")
+
+        # Add one row per commit
         for commit in data:
-            typer.echo(
-                f"{commit['sha']}  {commit['date']}  {commit['author']}: {commit['message']}"
+            table.add_row(
+                commit["sha"],
+                commit["date"],
+                commit["author"],
+                commit["message"],
             )
 
+        # Print the table via the rich console
+        console.print(table)
+
     except Exception as e:
-        typer.echo(f"Error fetching commits: {e}")
+        console.print(f"[bold red]Error fetching commits:[/bold red] {e}")
         raise typer.Exit(code=1)
 
 
@@ -86,35 +111,42 @@ def prs(repo: str) -> None:
         repo: Full repository name in the format "owner/repo"
     """
     try:
-        # Fetch both open PRs and branches
+        # Fetch both open PRs and branches — unchanged from before
         open_prs = fetch_open_prs(repo)
         branches = fetch_branches(repo)
 
-        # Display open PRs
-        typer.echo("Open Pull Requests:")
+        # ── Open Pull Requests table ──
+        pr_table = Table(title=f"Open Pull Requests — {repo}")
+        pr_table.add_column("#", style="cyan")
+        pr_table.add_column("Title")
+        pr_table.add_column("From → Into")
+        pr_table.add_column("Author")
+
         if open_prs:
             for pr in open_prs:
-                typer.echo(
-                    f"  #{pr['number']} {pr['title']} ({pr['from_branch']} → {pr['into_branch']}) by {pr['author']}"
+                pr_table.add_row(
+                    str(pr["number"]),
+                    pr["title"],
+                    f"{pr['from_branch']} → {pr['into_branch']}",
+                    pr["author"],
                 )
         else:
-            typer.echo("  No open pull requests.")
+            # add_row with a single value still needs one string per column,
+            # so we pass empty strings for the remaining columns
+            pr_table.add_row("[dim]No open pull requests[/dim]", "", "", "")
 
-        typer.echo("")  # blank line for readability
+        console.print(pr_table)
 
-        # Display branches
-        typer.echo("Branches:")
+        # ── Branches table ──
+        branch_table = Table(title="Branches")
+        branch_table.add_column("Name", style="magenta")
+        branch_table.add_column("Latest Commit", style="cyan")
+
         for branch in branches:
-            typer.echo(f"  {branch['name']} ({branch['latest_commit_sha']})")
+            branch_table.add_row(branch["name"], branch["latest_commit_sha"])
+
+        console.print(branch_table)
 
     except Exception as e:
-        typer.echo(f"Error fetching PRs/branches: {e}")
+        console.print(f"[bold red]Error fetching PRs/branches:[/bold red] {e}")
         raise typer.Exit(code=1)
-
-
-# ─────────────────────────────────────────────
-# Entry point for running the CLI directly during development
-# ─────────────────────────────────────────────
-
-if __name__ == "__main__":
-    app()

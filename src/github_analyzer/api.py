@@ -229,13 +229,3 @@ def fetch_branches(repo: str) -> list[dict]:
         }
         for branch in data
     ]
-
-
-# ─────────────────────────────────────────────
-# Quick manual test (remove before final version)
-# ─────────────────────────────────────────────
-
-if __name__ == "__main__":
-    # Only runs when this file is executed directly, not when imported
-    result = fetch_open_prs("louis-lemoine-dev/github-analyzer")
-    print(result)
