@@ -32,3 +32,8 @@ select = ["E", "F", "I"]    # E = pycodestyle errors, F = pyflakes, I = isort
 
 [tool.ruff.format]
 quote-style = "double"
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "ruff (>=0.15.20,<0.16.0)"
+]
