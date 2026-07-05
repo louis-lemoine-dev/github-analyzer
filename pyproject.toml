@@ -14,6 +14,9 @@ dependencies = [
     "python-dotenv (>=1.2.2,<2.0.0)"
 ]
 
+[project.scripts]
+github-analyzer = "github_analyzer.cli:app"
+
 [tool.poetry]
 packages = [{include = "github_analyzer", from = "src"}]
 
