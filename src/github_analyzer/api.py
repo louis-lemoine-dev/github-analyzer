@@ -43,7 +43,7 @@ def _fetch_repo_metadata_raw(repo: str) -> dict:
         )
 
     url = f"https://api.github.com/repos/{repo}"
-    headers = {
+    headers: dict[str, str | bytes] = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
     }
@@ -124,7 +124,7 @@ def _fetch_recent_commits_raw(repo: str, count: int = 10) -> list[dict]:
         )
 
     url = f"https://api.github.com/repos/{repo}/commits"
-    headers = {
+    headers: dict[str, str | bytes] = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
     }
@@ -209,7 +209,7 @@ def _fetch_open_prs_raw(repo: str) -> list[dict]:
         )
 
     url = f"https://api.github.com/repos/{repo}/pulls"
-    headers = {
+    headers: dict[str, str | bytes] = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
     }
@@ -295,7 +295,7 @@ def _fetch_branches_raw(repo: str) -> list[dict]:
         )
 
     url = f"https://api.github.com/repos/{repo}/branches"
-    headers = {
+    headers: dict[str, str | bytes] = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
     }

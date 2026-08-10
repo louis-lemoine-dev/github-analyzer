@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────
+# Workflow name — shown in GitHub's Actions tab
+# ─────────────────────────────────────────────────────────
+
+name: CI
+
+# ─────────────────────────────────────────────────────────
+# Triggers: when should this workflow run?
+# ─────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# ─────────────────────────────────────────────────────────
+# Jobs: what actually runs
+# ─────────────────────────────────────────────────────────
+
+jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: pull the repository's code onto the runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: install a specific Python version on the runner
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      # Step 3: install Poetry itself on the runner
+      - name: Install Poetry
+        run: pipx install poetry
+
+      # Step 4: install all project dependencies (including dev dependencies)
+      - name: Install dependencies
+        run: poetry install
+
+      # Step 5: run Ruff to check linting and formatting
+      - name: Lint with Ruff
+        run: poetry run ruff check .
+
+      # Step 6: run Pyright to check types
+      - name: Type check with Pyright
+        run: poetry run pyright
+
+      # Step 7: run the pytest test suite
+      - name: Run tests
+        run: poetry run pytest
